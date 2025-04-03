@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <title>摸鱼打工人 ADHD Clicker</title>
+  <style>
+    html, body {
+  background: url('img/background.jpg') no-repeat center center fixed;
+  background-size: cover;
+  background-color: #000; /* 万一图加载失败可降级 */
+  color: #fff;
+  overflow: hidden;
+}
+    .container {
+      position: relative;
+      z-index: 2;
+      text-align: center;
+      padding: 40px;
+    }
+    button {
+      padding: 14px 28px;
+      font-size: 18px;
+      background: #ffb347;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      margin: 8px;
+    }
+    .item-icon {
+      width: 50px;
+      position: absolute;
+      animation: popIn 0.5s ease;
+    }
+    .float { animation: float 3s ease-in-out infinite; }
+    .spin { animation: spin 4s linear infinite; }
+    .bounce { animation: bounce 2s ease-in-out infinite; }
+    .shake { animation: shake 1s ease-in-out infinite; }
+    .rotateY { animation: rotateY 3s linear infinite; }
+    .swirl { animation: swirl 2s ease-in-out infinite; }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-15px); }
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-5px); }
+      75% { transform: translateX(5px); }
+    }
+    @keyframes rotateY {
+      0% { transform: rotateY(0deg); }
+      100% { transform: rotateY(360deg); }
+    }
+    @keyframes swirl {
+      0% { transform: rotate(0deg) scale(1); }
+      50% { transform: rotate(180deg) scale(1.2); }
+      100% { transform: rotate(360deg) scale(1); }
+    }
+    .popup {
+      position: absolute;
+      top: 100px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.8);
+      padding: 18px;
+      border-radius: 10px;
+      animation: fadeInOut 3s ease;
+    }
+    @keyframes fadeInOut {
+      0% {opacity: 0;}
+      10% {opacity: 1;}
+      90% {opacity: 1;}
+      100% {opacity: 0;}
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎧 摸鱼打工人 ADHD Clicker</h1>
+    <button id="clicker">点我摸鱼 🐟</button>
+    <p>摸鱼时间：<span id="counter">0</span> 分钟</p>
+    <p>等级：<span id="rank">打工小白</span></p>
+    <h2>🛍️ 道具商城</h2>
+    <div id="shop"></div>
+<div style="margin-top: 30px;">
+  <h3>⚙️ 设置</h3>
+  <button onclick="toggleMusic()">🎵 切换音乐</button>
+  <button onclick="resetGame()">🧹 重置进度</button>
+</div>
+  </div>
+
+<script>
+  let count = parseInt(localStorage.getItem('moyuCount')) || 0;
+  let multiplier = parseInt(localStorage.getItem('moyuMultiplier')) || 1;
+  let owned = JSON.parse(localStorage.getItem('moyuOwned') || '{}');
+
+  const counter = document.getElementById('counter');
+  const rankLabel = document.getElementById('rank');
+  const shopContainer = document.getElementById('shop');
+
+  const ranks = [
+    { min: 0, label: '打工小白' },
+    { min: 100, label: '工位幽灵' },
+    { min: 300, label: '咸鱼将军' },
+    { min: 600, label: '内耗战神' },
+    { min: 1000, label: '全能躺王' }
+  ];
+
+  const upgrades = [
+    { name: 'coffee', label: '☕ 咖啡机（+1）', cost: 100, icon: 'img/coffee.png', effect: () => multiplier++, anim: 'float' },
+    { name: 'cat', label: '🐱 抱枕（+2）', cost: 200, icon: 'img/cat.png', effect: () => multiplier += 2, anim: 'bounce' },
+    { name: 'milktea', label: '🧃 奶茶（+2）', cost: 180, icon: 'img/milktea.png', effect: () => multiplier += 2, anim: 'spin' },
+    { name: 'burger', label: '🍔 汉堡（+3）', cost: 300, icon: 'img/burger.png', effect: () => multiplier += 3, anim: 'shake' },
+    { name: 'headset', label: '🎧 耳机（每10秒+1）', cost: 250, icon: 'img/headset.png', effect: () => setInterval(() => { count++; updateUI(); }, 10000), anim: 'swirl' },
+    { name: 'toy', label: '🧸 玩偶（点击加1次）', cost: 350, icon: 'img/toy.png', effect: () => document.getElementById('clicker').addEventListener('click', () => { count++; updateUI(); }), anim: 'rotateY' },
+    { name: 'disk', label: '💾 硬盘（离线收益+20%）', cost: 400, icon: 'img/disk.png', effect: () => {}, anim: 'shake' },
+    { name: 'comfort', label: '🧻 心理安慰包（称号专属）', cost: 420, icon: 'img/comfort.png', effect: () => {}, anim: 'float' }
+  ];
+
+  function updateUI() {
+    counter.textContent = count;
+    for (let i = ranks.length - 1; i >= 0; i--) {
+      if (count >= ranks[i].min) {
+        rankLabel.textContent = ranks[i].label;
+        break;
+      }
+    }
+    localStorage.setItem('moyuCount', count);
+    localStorage.setItem('moyuMultiplier', multiplier);
+    localStorage.setItem('moyuOwned', JSON.stringify(owned));
+  }
+
+  function triggerPopup(text) {
+    const popup = document.createElement('div');
+    popup.className = 'popup';
+    popup.textContent = text;
+    document.body.appendChild(popup);
+    setTimeout(() => popup.remove(), 3000);
+  }
+
+  function showItem(upg) {
+    const img = document.createElement('img');
+    img.src = upg.icon;
+    img.className = `item-icon ${upg.anim}`;
+    img.style.top = Math.floor(Math.random() * 80 + 10) + '%';
+    img.style.left = Math.floor(Math.random() * 80 + 10) + '%';
+    document.body.appendChild(img);
+  }
+
+  function renderShop() {
+    shopContainer.innerHTML = '';
+    upgrades.forEach(upg => {
+      if (!owned[upg.name]) {
+        const btn = document.createElement('button');
+        btn.textContent = `${upg.label} - ${upg.cost} 分钟`;
+        btn.onclick = () => {
+          if (count >= upg.cost) {
+            count -= upg.cost;
+            owned[upg.name] = true;
+            upg.effect();
+            showItem(upg);
+            updateUI();
+            renderShop();
+            triggerPopup(`✅ 获得：${upg.label}`);
+          } else {
+            triggerPopup('❌ 摸鱼时间不足');
+          }
+        };
+        shopContainer.appendChild(btn);
+      }
+    });
+// 获取背景音乐对象（前面 HTML 中已有 <audio id="bgm">）
+const bgm = document.getElementById("bgm");
+
+function toggleMusic() {
+  if (bgm.paused) {
+    bgm.play();
+    triggerPopup("🎵 音乐已开启");
+  } else {
+    bgm.pause();
+    triggerPopup("🔇 音乐已关闭");
+  }
+}
+
+function resetGame() {
+  if (confirm("确定要重置所有数据吗？这将清除摸鱼时间、道具记录等所有内容")) {
+    localStorage.clear();
+    location.reload();
+  }
+}
+  }
+
+  document.getElementById('clicker').addEventListener('click', () => {
+    count += multiplier;
+    updateUI();
+    if (count === 1) triggerPopup('🎉 成就：初尝摸鱼');
+    if (count === 500) triggerPopup('🏆 成就：摸鱼战神');
+    if (count === 1000) triggerPopup('👑 成就：全能躺王');
+
+    if (Math.random() < 0.25) {
+      const events = [
+        '老板路过…你切得很快！',
+        '同事送来奶茶，+5！',
+        '打印机炸了，全员摸鱼十分钟！'
+      ];
+      triggerPopup(events[Math.floor(Math.random() * events.length)]);
+    }
+  });
+
+  upgrades.forEach(upg => {
+    if (owned[upg.name]) {
+      upg.effect();
+      showItem(upg);
+    }
+  });
+
+  updateUI();
+  renderShop();
+</script>
+</body>
+</html>
